@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unity BCI Server Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+        .test-button {
+            padding: 10px 20px;
+            margin: 10px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #555;
+        }
+        #results {
+            background: #222;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { color: #00ff00; }
+        .error { color: #ff0000; }
+        .info { color: #00ffff; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Unity BCI Server Test</h1>
+    <p>Test all Unity HTTP server endpoints</p>
+    
+    <div>
+        <button class="test-button" onclick="testEndpoint('/ping')">Test /ping</button>
+        <button class="test-button" onclick="testEndpoint('/status')">Test /status</button>
+        <button class="test-button" onclick="testEndpoint('/health')">Test /health</button>
+        <button class="test-button" onclick="testCommand()">Test /command</button>
+        <button class="test-button" onclick="clearResults()">Clear Results</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const UNITY_URL = 'http://localhost:8080';
+        const resultsDiv = document.getElementById('results');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            resultsDiv.appendChild(logEntry);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        async function testEndpoint(endpoint) {
+            log(`Testing ${endpoint}...`, 'info');
+            
+            try {
+                const response = await fetch(`${UNITY_URL}${endpoint}`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                    log(`✅ ${endpoint}: ${response.status} - ${responseText}`, 'success');
+                } else {
+                    log(`❌ ${endpoint}: ${response.status} - ${responseText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ ${endpoint}: Error - ${error.message}`, 'error');
+            }
+        }
+
+        async function testCommand() {
+            log('Testing /command POST...', 'info');
+            
+            const commandData = {
+                command: 'left',
+                strength: 0.8,
+                timestamp: Date.now()
+            };
+            
+            try {
+                const response = await fetch(`${UNITY_URL}/command`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(commandData),
+                    mode: 'cors'
+                });
+                
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                    log(`✅ /command: ${response.status} - ${responseText}`, 'success');
+                } else {
+                    log(`❌ /command: ${response.status} - ${responseText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ /command: Error - ${error.message}`, 'error');
+            }
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+            log('Results cleared', 'info');
+        }
+
+        // Auto-test on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🔧 Unity BCI Server Test initialized', 'info');
+            log('Make sure Unity is playing and WorkingBCIServer is running!', 'info');
+            
+            // Test ping immediately
+            setTimeout(() => testEndpoint('/ping'), 1000);
+        });
+    </script>
+</body>
+</html>

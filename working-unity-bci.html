@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unity BCI Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            color: #00ffff;
+            text-shadow: 0 0 20px #00ffff;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+        
+        .control-section {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .status-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .connected { color: #00ff00; }
+        .connecting { color: #ff9900; }
+        .disconnected { color: #ff0000; }
+        
+        .command-display {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px solid #00ffff;
+        }
+        
+        .current-command {
+            font-size: 4em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-shadow: 0 0 30px currentColor;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .command-strength {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        
+        .strength-bar {
+            width: 100%;
+            height: 25px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #333;
+        }
+        
+        .strength-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .test-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .test-button {
+            padding: 15px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            color: #ffffff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .test-button:hover {
+            background: rgba(0, 255, 255, 0.4);
+            transform: scale(1.05);
+        }
+        
+        .log-area {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #333;
+        }
+        
+        .log-entry {
+            margin-bottom: 3px;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .log-command { background: rgba(0, 255, 0, 0.2); }
+        .log-unity { background: rgba(0, 255, 255, 0.2); }
+        .log-error { background: rgba(255, 0, 0, 0.2); }
+        
+        /* Command colors */
+        .cmd-left { color: #ffff00; }
+        .cmd-right { color: #ff00ff; }
+        .cmd-lift { color: #00ff00; }
+        .cmd-push { color: #00ffff; }
+        .cmd-pull { color: #ff0000; }
+        .cmd-neutral { color: #888888; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Unity BCI Control Interface</h1>
+            <p>Mental Commands → Unity Player Control</p>
+        </div>
+        
+        <div class="main-grid">
+            <!-- Left Panel: Command Display -->
+            <div class="control-section">
+                <h2>Mental Command Display</h2>
+                
+                <div class="command-display">
+                    <div class="current-command cmd-neutral" id="currentCommand">NEUTRAL</div>
+                    <div class="command-strength">
+                        Strength: <span id="commandStrength">0.000</span>
+                    </div>
+                    <div class="strength-bar">
+                        <div class="strength-fill" id="strengthBar"></div>
+                    </div>
+                </div>
+                
+                <h3>🎮 Manual Test Controls</h3>
+                <div class="test-controls">
+                    <button class="test-button" onclick="testCommand('left', 0.8)">← LEFT</button>
+                    <button class="test-button" onclick="testCommand('lift', 0.9)">↑ LIFT</button>
+                    <button class="test-button" onclick="testCommand('right', 0.8)">→ RIGHT</button>
+                    <button class="test-button" onclick="testCommand('pull', 0.7)">↓ PULL</button>
+                    <button class="test-button" onclick="testCommand('push', 0.8)">↗ PUSH</button>
+                    <button class="test-button" onclick="clearLog()">🗑️ CLEAR</button>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Status & Log -->
+            <div class="control-section">
+                <h2>📊 System Status</h2>
+                
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div>BCI Headset</div>
+                        <div class="status-value" id="headsetStatus">Connecting...</div>
+                    </div>
+                    <div class="status-item">
+                        <div>Unity Server</div>
+                        <div class="status-value" id="unityStatus">Checking...</div>
+                    </div>
+                    <div class="status-item">
+                        <div>Commands Sent</div>
+                        <div class="status-value" id="commandCount">0</div>
+                    </div>
+                    <div class="status-item">
+                        <div>⏱Last Command</div>
+                        <div class="status-value" id="lastCommandTime">Never</div>
+                    </div>
+                </div>
+                
+                <h3>Activity Log</h3>
+                <div class="log-area" id="logContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let commandCount = 0;
+        let unityConnected = false;
+        let currentCommand = 'neutral';
+        let currentStrength = 0;
+
+        // Unity connection
+        const UNITY_URL = 'http://localhost:8080';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeInterface();
+            logMessage('🎮 Unity BCI Interface initialized', 'unity');
+        });
+
+        function initializeInterface() {
+            updateCommandDisplay('neutral', 0, Date.now());
+            checkUnityConnection();
+            setInterval(checkUnityConnection, 5000);
+            
+            // Connect to real BCI headset
+            document.getElementById('headsetStatus').textContent = 'Connecting...';
+            document.getElementById('headsetStatus').className = 'status-value connecting';
+            logMessage('Connecting to Emotiv Cortex...', 'command');
+            
+            // Start real BCI connection
+            startRealBCIConnection();
+        }
+
+        async function checkUnityConnection() {
+            try {
+                const response = await fetch(`${UNITY_URL}/ping`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    unityConnected = true;
+                    document.getElementById('unityStatus').textContent = 'Connected';
+                    document.getElementById('unityStatus').className = 'status-value connected';
+                } else {
+                    throw new Error('Unity server not responding');
+                }
+            } catch (error) {
+                unityConnected = false;
+                document.getElementById('unityStatus').textContent = 'Disconnected';
+                document.getElementById('unityStatus').className = 'status-value disconnected';
+            }
+        }
+
+        // This function sends commands to Unity (the key function that was missing!)
+        async function sendCommandToUnity(command, strength, timestamp) {
+            if (!unityConnected) {
+                logMessage('❌ Unity not connected, cannot send command', 'error');
+                return;
+            }
+
+            // Skip weak commands
+            if (strength < 0.3) {
+                return;
+            }
+
+            const commandData = {
+                command: command,
+                strength: strength,
+                timestamp: timestamp || Date.now()
+            };
+
+            try {
+                const response = await fetch(`${UNITY_URL}/command`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(commandData),
+                    mode: 'cors'
+                });
+
+                if (response.ok) {
+                    const responseText = await response.text();
+                    logMessage(`✅ Unity Command: ${command.toUpperCase()} (${strength.toFixed(2)})`, 'unity');
+                    
+                    commandCount++;
+                    document.getElementById('commandCount').textContent = commandCount;
+                    document.getElementById('lastCommandTime').textContent = new Date().toLocaleTimeString();
+                } else {
+                    logMessage(`❌ Unity command failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                logMessage(`❌ Unity command error: ${error.message}`, 'error');
+                unityConnected = false;
+            }
+        }
+
+        // This function handles mental commands (replace this with your real BCI data)
+        function updateCommandDisplay(command, strength, timestamp) {
+            currentCommand = command;
+            currentStrength = strength;
+
+            // Update display
+            const commandEl = document.getElementById('currentCommand');
+            const strengthEl = document.getElementById('commandStrength');
+            const strengthBar = document.getElementById('strengthBar');
+
+            commandEl.textContent = command.toUpperCase();
+            commandEl.className = 'current-command cmd-' + command.toLowerCase();
+            
+            strengthEl.textContent = strength.toFixed(3);
+            
+            const strengthPercent = Math.min(strength * 100, 100);
+            strengthBar.style.width = strengthPercent + '%';
+
+            // Send to Unity if strong enough
+            if (command !== 'neutral' && strength > 0.3) {
+                sendCommandToUnity(command, strength, timestamp);
+                logMessage(`Mental Command: ${command.toUpperCase()} (${strength.toFixed(2)})`, 'command');
+            }
+        }
+
+        // Test function for manual commands
+        function testCommand(command, strength) {
+            updateCommandDisplay(command, strength, Date.now());
+            logMessage(`Manual Test: ${command.toUpperCase()}`, 'command');
+        }
+
+        // Real BCI Cortex connection
+        let cortex = null;
+        let socket = null;
+        let authToken = null;
+        let sessionId = null;
+
+        function startRealBCIConnection() {
+            try {
+                // Connect to Emotiv Cortex WebSocket
+                socket = new WebSocket('wss://localhost:6868');
+                
+                socket.onopen = function(event) {
+                    logMessage('Connected to Emotiv Cortex', 'command');
+                    requestAccess();
+                };
+                
+                socket.onmessage = function(event) {
+                    const response = JSON.parse(event.data);
+                    handleCortexMessage(response);
+                };
+                
+                socket.onerror = function(error) {
+                    logMessage('❌ Cortex connection error: ' + error, 'error');
+                };
+                
+                socket.onclose = function(event) {
+                    logMessage('⚠️ Cortex connection closed', 'error');
+                };
+                
+            } catch (error) {
+                logMessage('❌ BCI connection failed: ' + error.message, 'error');
+            }
+        }
+
+        function sendCortexRequest(method, params = {}) {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                logMessage('❌ Cortex not connected', 'error');
+                return;
+            }
+            
+            const request = {
+                jsonrpc: "2.0",
+                method: method,
+                params: params,
+                id: Date.now()
+            };
+            
+            socket.send(JSON.stringify(request));
+        }
+
+        function requestAccess() {
+            const params = {
+                clientId: "[INSERT CLIENT ID HERE]",
+                clientSecret: "[INSERT CLIENT SECRET HERE]"
+            };
+            sendCortexRequest("requestAccess", params);
+        }
+
+        function authorize() {
+            const params = {
+                clientId: "[INSERT CLIENT ID HERE]",
+                clientSecret: "[INSERT CLIENT SECRET HERE]"
+            };
+            sendCortexRequest("authorize", params);
+        }
+
+        function queryHeadsets() {
+            sendCortexRequest("queryHeadsets");
+        }
+
+        function createSession(headsetId) {
+            const params = {
+                cortexToken: authToken,
+                headset: headsetId,
+                status: "active"
+            };
+            sendCortexRequest("createSession", params);
+        }
+
+        function subscribeMentalCommands() {
+            const params = {
+                cortexToken: authToken,
+                session: sessionId,
+                streams: ["com"]  // Mental commands stream
+            };
+            sendCortexRequest("subscribe", params);
+        }
+
+        function handleCortexMessage(response) {
+            // Handle different response types
+            if (response.result !== undefined) {
+                // Handle method responses
+                handleMethodResponse(response);
+            } else if (response.com) {
+                // Handle mental command data
+                handleMentalCommandData(response.com);
+            }
+        }
+
+        function handleMethodResponse(response) {
+            const method = response.id; // You might need to track this better
+            
+            if (response.result && response.result.accessGranted) {
+                logMessage('✅ Access granted, authorizing...', 'command');
+                authorize();
+            } else if (response.result && response.result.cortexToken) {
+                authToken = response.result.cortexToken;
+                logMessage('✅ Authorized, querying headsets...', 'command');
+                queryHeadsets();
+            } else if (response.result && Array.isArray(response.result)) {
+                // Headset list
+                if (response.result.length > 0) {
+                    const headset = response.result[0];
+                    logMessage(`✅ Found headset: ${headset.id}`, 'command');
+                    createSession(headset.id);
+                } else {
+                    logMessage('❌ No headsets found', 'error');
+                }
+            } else if (response.result && response.result.id) {
+                // Session created
+                sessionId = response.result.id;
+                logMessage('✅ Session created, subscribing to mental commands...', 'command');
+                subscribeMentalCommands();
+            } else if (response.result && response.result.success) {
+                // Subscription successful
+                logMessage('� Mental commands subscription active!', 'command');
+                document.getElementById('headsetStatus').textContent = 'Active';
+                document.getElementById('headsetStatus').className = 'status-value connected';
+            }
+        }
+
+        function handleMentalCommandData(commandData) {
+            if (commandData && commandData.length >= 2) {
+                const command = commandData[0];  // Command name
+                const strength = commandData[1]; // Command strength
+                
+                // Send to Unity interface
+                updateCommandDisplay(command, strength, Date.now());
+                
+                logMessage(`Mental Command: ${command} (${strength.toFixed(3)})`, 'command');
+            }
+        }
+
+        function logMessage(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry log-' + type;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('logContainer').innerHTML = '';
+            logMessage('Log cleared', 'unity');
+        }
+    </script>
+</body>
+</html>

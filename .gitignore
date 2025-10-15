@@ -1,0 +1,42 @@
+# ===== Unity .gitignore =====
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild*/
+[Ll]ogs/
+UserSettings/
+MemoryCaptures/
+Build/
+Builds/
+Assets/AssetStoreTools*
+Assets/StreamingAssets/
+*.csproj
+*.sln
+*.unityproj
+*.pidb
+*.user
+*.booproj
+.DS_Store
+.vs/
+.idea/
+.vscode/
+Thumbs.db
+*.exe
+*.dll
+*.pdb
+*.mdb
+*.so
+*.a
+*.lib
+*.dylib
+*.apk
+*.app
+*.unitypackage
+
+# Emotiv SDK
+Emotiv/
+Plugins/Emotiv/
+
+# Web builds
+dist/
+node_modules/
