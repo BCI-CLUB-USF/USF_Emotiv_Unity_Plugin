@@ -1,0 +1,85 @@
+# How to Connect Emotiv Mental Commands to Unity Actions
+
+## Overview
+This guide explains how to link mental commands (like "lift") from your Emotiv headset to custom functions in your Unity game.
+
+## Flow
+1. The browser detects mental commands and sends them to Unity via HTTP POST (`/command`).
+2. Unity receives the command using the `WorkingBCIServer` script.
+3. The server triggers the `OnCommandReceived` event with the command name and strength.
+4. Your player script subscribes to this event and runs custom code for each command.
+
+## Example: Handling the "lift" Command
+
+In your player script (e.g., `ImprovedBCIPlayer.cs`), add the following:
+
+```csharp
+void OnEnable()
+{
+    WorkingBCIServer.OnCommandReceived += HandleBCICommand;
+}
+
+void OnDisable()
+{
+    WorkingBCIServer.OnCommandReceived -= HandleBCICommand;
+}
+
+void HandleBCICommand(string command, float strength)
+{
+    if (command == "lift" && strength > 0.3f)
+    {
+        // Call your custom function here
+        Jump(strength);
+    }
+    // Add more command handling as needed
+}
+```
+
+- Replace `Jump(strength);` with your own function or logic.
+- You can add similar blocks for other commands ("left", "right", etc.).
+
+## Summary
+- Mental command is sent from browser to Unity.
+- Unity server receives and triggers an event.
+- Your script listens for the event and runs your function when the command is received.
+
+You can use this pattern to connect any mental command to any Unity action you want.
+
+---
+
+## Where to Attach Unity Scripts
+
+1. **WorkingBCIServer.cs**
+    - Attach to a new empty GameObject in your main scene (e.g., name it "BCIServer").
+    - This script runs the HTTP server and receives commands.
+
+2. **BCISceneSetup.cs**
+    - Attach to a new empty GameObject (e.g., "SceneSetup").
+    - Use this to auto-setup the ground, player, and camera. You can run it once or leave it enabled.
+
+3. **ImprovedBCIPlayer.cs**
+    - Attach to your player GameObject (the one representing the character you want to control).
+    - This script handles movement and command actions.
+
+4. **InputSystemPlayerController.cs**
+    - Also attach to your player GameObject.
+    - This script lets you control the player with Unity’s Input System (keyboard/gamepad).
+
+5. **CameraController.cs**
+    - Attach to your main camera GameObject.
+    - This script makes the camera follow the player and adds effects.
+
+### Steps
+- In Unity, select the appropriate GameObject in the Hierarchy.
+- Click “Add Component” and choose the script you want to attach.
+- For the player, you can attach both `ImprovedBCIPlayer` and `InputSystemPlayerController`.
+- For the camera, attach `CameraController`.
+- For the server, create a new empty GameObject and attach `WorkingBCIServer`.
+
+### Summary
+- Server script → empty GameObject
+- Scene setup script → empty GameObject
+- Player scripts → player GameObject
+- Camera script → camera GameObject
+
+This setup ensures commands from Emotiv are received and applied to your player in Unity.
